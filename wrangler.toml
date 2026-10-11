@@ -38,7 +38,7 @@ run_worker_first = true
 [[d1_databases]]
 binding = "DB"
 database_name = "nodrix"
-database_id = "PLACEHOLDER_FILLED_BY_DEPLOY_OR_WRANGLER"
+database_id = "2009cbe6-8d11-4896-a824-991a09dd5c57"
 migrations_dir = "worker/src/platform/db/migrations"
 
 # R2 — cold telemetry history, NDJSON partitioned by project + hour.
@@ -49,7 +49,7 @@ bucket_name = "nodrix-telemetry"
 # KV — read cache and OAuth provider storage (aliased to OAUTH_KV in worker entry).
 [[kv_namespaces]]
 binding = "KV"
-id = "PLACEHOLDER_FILLED_BY_DEPLOY_OR_WRANGLER"
+id = "nodrix_kv"
 
 # Durable Objects.
 [[durable_objects.bindings]]
