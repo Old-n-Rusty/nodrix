@@ -1,104 +1,25 @@
 name = "nodrix"
 main = "worker/src/index.ts"
-compatibility_date = "2025-05-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-04-01"
 
-# This is the LOCAL-DEV config. Production deploys use deploy/wrangler.toml —
-# the Deploy to Cloudflare button clones only the deploy/ subdir as the user's
-# repo root (see deploy/wrangler.toml). The two must be kept in sync when
-# bindings change; they can't be symlinked (the subdir must be self-contained).
-#
-# Build pipeline. scripts/build-from-upstream.sh, when running under Workers
-# Builds (detected via WORKERS_CI_COMMIT_SHA), replaces the clone's working
-# tree with upstream source before invoking the build chain. The user's
-# wrangler.toml (resource IDs from the Deploy button) is preserved across it.
-#
-# Locally the same script falls through to the standard build chain, so
-# `bun run build` / `wrangler deploy --dry-run` still work for development.
-#
-# The cd-fallback anchors to repo root regardless of whether wrangler is
-# invoked there or from worker/ (local `wrangler dev`).
-[build]
-command = "[ -f scripts/build-from-upstream.sh ] || cd ..; bash scripts/build-from-upstream.sh"
-
-# Vue SPA built by `web/` workspace is served as static assets.
-# `run_worker_first = true` is REQUIRED: without it, Cloudflare's edge serves
-# index.html for any unmatched GET (SPA fallback) before the Worker runs, which
-# silently intercepts OAuth callbacks like /v1/auth/callback/google. With this
-# flag, the Worker runs for every method and falls back to ASSETS.fetch() only
-# for paths it doesn't handle.
-[assets]
-directory = "web/dist"
-binding = "ASSETS"
-not_found_handling = "single-page-application"
-run_worker_first = true
-
-# D1 — metadata only (users, projects, variables, dashboards, tokens).
-# NEVER any telemetry point. See plan §3.
 [[d1_databases]]
 binding = "DB"
 database_name = "nodrix"
 database_id = "2009cbe6-8d11-4896-a824-991a09dd5c57"
 migrations_dir = "worker/src/platform/db/migrations"
 
-# R2 — cold telemetry history, NDJSON partitioned by project + hour.
 [[r2_buckets]]
-binding = "r2"
+binding = "R2"
 bucket_name = "nodrix-telemetry"
 
-# KV — read cache and OAuth provider storage (aliased to OAUTH_KV in worker entry).
 [[kv_namespaces]]
 binding = "KV"
 id = "nodrix_kv"
 
-# Durable Objects.
 [[durable_objects.bindings]]
 name = "PROJECT_DO"
 class_name = "ProjectDO"
 
-[[durable_objects.bindings]]
-name = "DASHBOARD_DO"
-class_name = "DashboardDO"
-
-# Singleton scheduler: one alarm at the next schedule/sunset fire time.
-[[durable_objects.bindings]]
-name = "SCHEDULER_DO"
-class_name = "SchedulerDO"
-
-# MCP server agent (Streamable HTTP). The `agents` library keys one DO instance
-# per client session, so requests never funnel through a singleton. Only spun up
-# when the owner-gated /v1/mcp endpoint is enabled and hit.
-[[durable_objects.bindings]]
-name = "MCP_OBJECT"
-class_name = "NodrixMcpAgent"
-
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["ProjectDO", "DashboardDO", "SchedulerDO", "NodrixMcpAgent"]
-
-# Workflows — provisioning only. Never on the hot path. See plan §10.
-# (Schedule/sunset automations are driven by the SchedulerDO alarm, not a Workflow.)
-[[workflows]]
-name = "nodrix-provision"
-binding = "PROVISION"
-class_name = "Provision"
-
-# Plaintext vars. Settings → Version & updates polls the upstream repo to tell
-# owners when a newer version is available (latest release, or default-branch
-# HEAD on the edge channel). Fork the upstream and override this if you're
-# tracking a different canonical source.
-[vars]
-NODRIX_UPSTREAM_REPO = "decoded-cipher/nodrix"
-
-# No secrets are required at deploy time. The signing secret used for
-# session cookies and OAuth-secret encryption is generated on first boot
-# and stored in deployment_settings (see worker/src/lib/auth-secret.ts).
-# OAuth callback URLs and Better Auth's baseURL are derived from each
-# request's origin, so no APP_URL env var is needed either.
-
-# Daily anonymous usage-stats heartbeat (scheduled handler in worker/src/index.ts).
-[triggers]
-crons = ["0 0 * * *"]
-
-[observability]
-enabled = true
+new_classes = ["ProjectDO"]
