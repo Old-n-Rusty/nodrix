@@ -13,7 +13,7 @@
     "dev:web": "bun run --filter @nodrix/web dev",
     "build:version": "bun scripts/gen-version.ts",
     "build:migrations": "bun scripts/gen-migrations.ts",
-    "build": "bun run build:version && bun run build:migrations && bun run --filter @nodrix/web build && bun run --filter @nodrix/worker build",
+    "build": "tsc",
     "deploy:platform": "bun run build && bun run --filter @nodrix/worker deploy",
     "typecheck": "bun run --filter '*' typecheck",
     "smoke": "bun run worker/test/smoke.ts",
